@@ -123,27 +123,48 @@ export default function LoadoutPopup({
   };
 
   const [confirmDialog, confirm] = useConfirm();
-  const applyRandomLoadout = async (e: React.MouseEvent, weaponsOnly = false) => {
+  const [allowSunset, setAllowSunset] = useState(false);
+  const [requirePrimary, setRequirePrimary] = useState(false);
+
+  const handleAllowSunsetToggle = () => {
+    setAllowSunset(!allowSunset);
+  };
+
+  const handleRequirePrimaryToggle = () => {
+    setRequirePrimary(!requirePrimary);
+  };
+
+  const applyRandomLoadout = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (
-      !(await confirm(
-        weaponsOnly
-          ? t('Loadouts.RandomizeWeapons')
-          : query.length > 0
-          ? t('Loadouts.RandomizeSearchPrompt', { query })
-          : t('Loadouts.RandomizePrompt')
-      ))
-    ) {
+    const randomizePrompt = (
+      <>
+        <div>
+          <input
+            type="checkbox"
+            id="require-primary-toggle"
+            checked={requirePrimary}
+            onChange={handleRequirePrimaryToggle}
+          />
+          <label htmlFor="require-primary-toggle">Require at least 1 Primary</label>
+        </div>
+        <div>
+          <input
+            type="checkbox"
+            id="allow-sunset-toggle"
+            checked={allowSunset}
+            onChange={handleAllowSunsetToggle}
+          />
+          <label htmlFor="allow-sunset-toggle">Exclude Sunset</label>
+        </div>
+      </>
+    );
+    if (!(await confirm(randomizePrompt))) {
       e.preventDefault();
       onClick?.(e);
       return;
     }
     try {
-      const loadout = randomLoadout(
-        dimStore,
-        allItems,
-        weaponsOnly ? (i) => i.bucket?.sort === 'Weapons' && searchFilter(i) : searchFilter
-      );
+      const loadout = randomLoadout(dimStore, allItems, searchFilter);
       if (loadout) {
         dispatch(applyLoadout(dimStore, loadout, { allowUndo: true }));
       }
@@ -366,7 +387,7 @@ export default function LoadoutPopup({
               </span>
             </span>
             {query.length === 0 && (
-              <span className={styles.altButton} onClick={(e) => applyRandomLoadout(e, true)}>
+              <span className={styles.altButton} onClick={(e) => applyRandomLoadout(e)}>
                 <span>{t('Loadouts.WeaponsOnly')}</span>
               </span>
             )}
